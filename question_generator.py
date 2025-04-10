@@ -92,6 +92,61 @@ def generate_question_and_answer(title: str, client: Groq) -> Optional[Dict[str,
         console.print(f"[red]Error generating question and answer: {e}[/red]")
         return None
 
+def evaluate_questions(articles: List[Article], client: Groq) -> List[int]:
+    """Evaluate questions and answers using an LLM to determine which to keep."""
+    indices_to_keep = []
+    offset = 0
+    for i in range(0, len(articles), 5):
+        batch = articles[i:i+5]
+        batch_content = [
+            {
+                "question": article.question,
+                "answer": article.answer
+            }
+            for article in batch
+        ]
+        try:
+            response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are a helpful assistant that evaluates questions and answers in JSON format to test an LLM's ability to access real-time information from news headlines. "
+                            "Use the following guidelines:\n\n"
+                            "1. Analyze each question and answer pair to determine if it meets the criteria of being clear, specific, and based on a real-time event. "
+                            "If the pair is strong, include its index in the response.\n\n"
+                            "2. Return a JSON object with reasoning and indices fields."
+                            "Example response: {\"reasoning\": \"Pair 0 is good because...\", \"indices\": [0, 1, 2]}"
+                            "Example pairs:\n"
+                            "[{\"question\": \"What was the outcome of SpaceX's launch yesterday?\", \"answer\": \"SpaceX successfully launched 22 Starlink satellites yesterday from Florida.\"},\n"
+                            " {\"question\": \"Who won the 2023 World Series?\", \"answer\": \"The Texas Rangers won the 2023 World Series.\"},\n"
+                            " {\"question\": \"What did the Fed announce about interest rates this week?\", \"answer\": \"The Federal Reserve announced it is maintaining current interest rates this week.\"}]"
+                        )
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Evaluate these question-answer pairs: {json.dumps(batch_content)}"
+                    }
+                ],
+                temperature=0.7,
+                max_tokens=1000,
+                response_format={"type": "json_object"}
+            )
+
+            print(response.choices[0].message.content)
+            content = response.choices[0].message.content.strip()
+            result = json.loads(content)
+            new_indices_to_keep = result.get('indices', [])
+            indices_to_keep.extend([i + offset for i in new_indices_to_keep])
+            offset += 5
+
+            console.print(f"[green]Running indices to keep: {indices_to_keep}[/green]")
+        except Exception as e:
+            console.print(f"[red]Error evaluating questions: {e}[/red]")
+            return []
+    return indices_to_keep
+
 def process_articles(feeds: List[Dict], client: Groq, test: bool = False) -> List[Article]:
     """Process articles from all feeds and generate questions and answers."""
     articles = []
@@ -124,7 +179,9 @@ def process_articles(feeds: List[Dict], client: Groq, test: bool = False) -> Lis
             
             progress.update(task, advance=1)
     
-    return articles
+    # Evaluate and filter articles
+    indices_to_keep = evaluate_questions(articles, client)
+    return [articles[i] for i in indices_to_keep]
 
 def save_dataset(articles: List[Article], filename: str = "news_questions.json"):
     """Save the generated questions and answers to a JSON file."""

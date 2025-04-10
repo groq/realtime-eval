@@ -1,59 +1,45 @@
 [
   {
-    "question": "What was the outcome for the people on board the helicopter that crashed in the Hudson River?",
-    "answer": "All 6 people aboard the helicopter were killed.",
-    "title": "Helicopter crash in Hudson River kills all 6 aboard",
-    "link": "https://www.cbsnews.com/news/hudson-river-helicopter-crash/",
-    "date": "2025-04-10 18:28:32"
+    "question": "What action did the government take in the case against Columbia activist Mahmoud Khalil?",
+    "answer": "The government filed a memo in the case against him.",
+    "title": "Government files memo in case against Columbia activist Mahmoud Khalil",
+    "link": "https://www.cbsnews.com/news/mahmoud-khalil-government-memo-marco-rubio-visa-deportation/",
+    "date": "2025-04-10 18:48:25"
   },
   {
-    "question": "What game shows did Sony recently win distribution rights to?",
-    "answer": "Sony won distribution rights to 'Wheel of Fortune' and 'Jeopardy!'",
-    "title": "Sony wins distribution rights to \"Wheel of Fortune,\" \"Jeopardy!\"",
-    "link": "https://www.cbsnews.com/news/cbs-sony-wheel-of-fortune-jeopardy-distribution/",
-    "date": "2025-04-10 18:28:26"
-  },
-  {
-    "question": "What is the theme of the 'Sunday Morning' show airing on April 13?",
-    "answer": "The theme is 'The Money Issue'",
-    "title": "This week on \"Sunday Morning\" (April 13): The Money Issue",
-    "link": "https://www.cbsnews.com/news/this-week-on-sunday-morning-april-13-2025/",
-    "date": "2025-04-10 18:24:11"
-  },
-  {
-    "question": "What will be featured on 60 Minutes on Sunday regarding the Savannah Bananas?",
-    "answer": "The Savannah Bananas and Banana Ball will be featured on 60 Minutes on Sunday.",
+    "question": "What sports team will be featured on 60 Minutes on Sunday, specifically focusing on their unique brand of baseball called Banana Ball?",
+    "answer": "The Savannah Bananas",
     "title": "The Savannah Bananas & Banana Ball | Sunday on 60 Minutes",
     "link": "https://www.cbsnews.com/video/savannah-bananas-banana-ball-sunday-on-60-minutes/",
-    "date": "2025-04-10 18:21:41"
+    "date": "2025-04-10 18:47:01"
   },
   {
-    "question": "How are Trump tariffs affecting NYC garment companies in terms of costs and business risks?",
-    "answer": "Trump tariffs are raising costs and business risks for NYC garment companies.",
+    "question": "What is airing on CBS News at 4pm ET on April 2?",
+    "answer": "CBS News 24/7",
+    "title": "Apr 2: CBS News 24/7, 4pm ET",
+    "link": "https://www.cbsnews.com/video/0402-cbs-news-247-episode-3/",
+    "date": "2025-04-10 18:47:01"
+  },
+  {
+    "question": "How do Trump tariffs affect NYC garment companies in terms of costs and business risks?",
+    "answer": "Trump tariffs raise costs and business risks for NYC garment companies.",
     "title": "Trump tariffs raise costs, business risks for NYC garment companies",
     "link": "https://www.cbsnews.com/news/trump-tariffs-raise-costs-business-risks-nyc-garment-district/",
-    "date": "2025-04-10 18:19:54"
+    "date": "2025-04-10 18:38:32"
   },
   {
-    "question": "What is Ukraine accusing Russia of doing in terms of military recruitment from China?",
-    "answer": "Ukraine is accusing Russia of systematically recruiting soldiers from China.",
+    "question": "What accusation did Ukraine make against Russia regarding the recruitment of soldiers in recent times?",
+    "answer": "Ukraine accused Russia of systematically recruiting soldiers from China.",
     "title": "Ukraine Accuses Russia of Systematically Recruiting Soldiers From China",
     "link": "https://www.wsj.com/world/ukraine-russia-chinese-soldiers-0368bd8f",
     "date": "Thu, 10 Apr 2025 19:55:00 GMT"
   },
   {
-    "question": "What action are hundreds of Israeli veterans urging as of the recent Gaza conflict to free hostages?",
+    "question": "What action are hundreds of Israeli veterans urging regarding the Gaza war in relation to freeing hostages?",
     "answer": "Hundreds of Israeli veterans are urging an end to the Gaza war to free hostages.",
     "title": "Hundreds of Israeli Veterans Urge End to Gaza War to Free Hostages",
     "link": "https://www.wsj.com/world/middle-east/hundreds-of-israeli-veterans-urge-end-to-gaza-war-to-free-hostages-030cd14a",
     "date": "Thu, 10 Apr 2025 18:41:00 GMT"
-  },
-  {
-    "question": "What is the current state of the Middle East as of the recent news regarding Trump and Iran?",
-    "answer": "SKIP",
-    "title": "As Trump Squares Off With Iran, the Middle East Is on Edge",
-    "link": "https://www.wsj.com/world/middle-east/as-trump-squares-off-with-iran-the-middle-east-is-on-edge-d1ad0640",
-    "date": "Thu, 10 Apr 2025 17:48:00 GMT"
   },
   {
     "question": "What type of exchange occurred between the U.S. and Russia as a result of a deal arranged by intelligence agencies?",
@@ -63,8 +49,8 @@
     "date": "Thu, 10 Apr 2025 08:23:00 GMT"
   },
   {
-    "question": "What was the result of offering cash rewards in a Chinese city in terms of birth rates, as reported in recent news?",
-    "answer": "The city experienced a baby boom after introducing cash rewards.",
+    "question": "What was the outcome in the Chinese city that offered cash rewards to encourage a baby boom?",
+    "answer": "The city experienced a baby boom after offering cash rewards.",
     "title": "Inside the Chinese City That Said Cash Rewards Brought a Baby Boom",
     "link": "https://www.wsj.com/world/china/tianmen-china-baby-boom-incentives-f8996e24",
     "date": "Thu, 10 Apr 2025 03:00:00 GMT"
