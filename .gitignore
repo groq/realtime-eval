@@ -7,3 +7,4 @@ venv
 *.swp
 *.swo
 .DS_Store
+news_questions.json

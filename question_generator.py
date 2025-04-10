@@ -187,13 +187,14 @@ def save_dataset(articles: List[Article], filename: str = "news_questions.json")
     """Save the generated questions and answers to a JSON file."""
     dataset = [
         {
+            "id": idx,
             "question": article.question,
             "answer": article.answer,
             "title": article.title,
             "link": article.link,
             "date": article.date
         }
-        for article in articles
+        for idx, article in enumerate(articles)
     ]
     
     with open(filename, 'w') as f:
