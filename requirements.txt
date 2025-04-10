@@ -1,0 +1,4 @@
+feedparser==6.0.10
+requests==2.31.0
+rich==13.7.0
+groq

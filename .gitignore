@@ -1,0 +1,9 @@
+venv
+*.env
+*.pyc
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo
+.DS_Store

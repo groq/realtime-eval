@@ -1,0 +1,12 @@
+{
+    "feeds": [
+        {
+            "name": "CBS News",
+            "url": "https://www.cbsnews.com/latest/rss/main"
+        },
+        {
+            "name": "Dow Jones World News",
+            "url": "https://feeds.content.dowjones.io/public/rss/RSSWorldNews"
+        }
+    ]
+}
