@@ -6,7 +6,6 @@ from typing import List, Dict
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
-from rich import print as rprint
 
 console = Console()
 
@@ -53,12 +52,4 @@ def display_articles(feed: feedparser.FeedParserDict, feed_name: str):
         published = format_date(entry.get('published', 'No date'))
         table.add_row(title, published, link)
 
-    console.print(Panel(table, title=feed_name, border_style="yellow"))
-
-def main():
-    for feed_info in load_feeds():
-        feed = fetch_feed(feed_info['url'])
-        display_articles(feed, feed_info['name'])
-
-if __name__ == "__main__":
-    main() 
+    console.print(Panel(table, title=feed_name, border_style="yellow")) 

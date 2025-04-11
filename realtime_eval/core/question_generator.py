@@ -1,13 +1,10 @@
 import json
-import feedparser
-import requests
-from datetime import datetime
 from typing import List, Dict, Optional
+from dataclasses import dataclass
 from rich.console import Console
 from rich.progress import Progress
 from groq import Groq
-import os
-from dataclasses import dataclass
+from .feed_handler import fetch_feed, format_date, load_feeds
 
 console = Console()
 
@@ -18,33 +15,6 @@ class Article:
     date: str
     question: Optional[str] = None
     answer: Optional[str] = None
-
-def load_feeds() -> List[Dict]:
-    """Load RSS feed URLs from the JSON file."""
-    try:
-        with open('feeds.json', 'r') as f:
-            return json.load(f)['feeds']
-    except (FileNotFoundError, json.JSONDecodeError) as e:
-        console.print(f"[red]Error loading feeds: {str(e)}[/red]")
-        return []
-
-def fetch_feed(feed_url: str) -> feedparser.FeedParserDict:
-    """Fetch and parse an RSS feed."""
-    try:
-        response = requests.get(feed_url)
-        response.raise_for_status()
-        return feedparser.parse(response.content)
-    except requests.RequestException as e:
-        console.print(f"[red]Error fetching feed {feed_url}: {e}[/red]")
-        return feedparser.FeedParserDict()
-
-def format_date(date_str: str) -> str:
-    """Format the date string to a more readable format."""
-    try:
-        date = datetime.strptime(date_str, "%a, %d %b %Y %H:%M:%S %z")
-        return date.strftime("%Y-%m-%d %H:%M:%S")
-    except (ValueError, TypeError):
-        return date_str
 
 def generate_question_and_answer(title: str, client: Groq) -> Optional[Dict[str, str]]:
     """Generate a question and answer based on the article title using Groq API."""
@@ -200,23 +170,4 @@ def save_dataset(articles: List[Article], filename: str = "news_questions.json")
     with open(filename, 'w') as f:
         json.dump(dataset, f, indent=2)
     
-    console.print(f"[green]Dataset saved to {filename} with {len(articles)} entries[/green]")
-
-def main(test: bool = False):
-    # Check for Groq API key
-    api_key = os.getenv("GROQ_API_KEY")
-    if not api_key:
-        console.print("[red]Error: GROQ_API_KEY environment variable not set[/red]")
-        return
-    
-    client = Groq(api_key=api_key)
-    feeds = load_feeds()
-    
-    if not feeds:
-        return
-    
-    articles = process_articles(feeds, client, test)
-    save_dataset(articles)
-
-if __name__ == "__main__":
-    main(test=True)  # Set test=True to process only the first 5 articles 
+    console.print(f"[green]Dataset saved to {filename} with {len(articles)} entries[/green]") 

@@ -8,3 +8,11 @@ venv
 *.swo
 .DS_Store
 news_questions.json
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
+*.pywz
+*.pyc~
