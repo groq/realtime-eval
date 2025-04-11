@@ -7,6 +7,22 @@
         {
             "name": "Dow Jones World News",
             "url": "https://feeds.content.dowjones.io/public/rss/RSSWorldNews"
+        },
+        {
+            "name": "CNN Top Stories",
+            "url": "http://rss.cnn.com/rss/cnn_topstories.rss"
+        },
+        {
+            "name": "USA Today Top Stories",
+            "url": "http://rssfeeds.usatoday.com/usatoday-NewsTopStories"
+        },
+        {
+            "name": "NPR News",
+            "url": "http://www.npr.org/rss/rss.php?id=1001"
+        },
+        {
+            "name": "BBC Americas",
+            "url": "http://newsrss.bbc.co.uk/rss/newsonline_world_edition/americas/rss.xml"
         }
     ]
 }

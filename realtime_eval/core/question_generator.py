@@ -124,44 +124,67 @@ def evaluate_questions(articles: List[Article], client: Groq) -> List[int]:
             return []
     return indices_to_keep
 
-def process_articles(feeds: List[Dict], client: Groq, test: bool = False) -> List[Article]:
-    """Process articles from all feeds and generate questions and answers."""
+def process_articles(feeds: List[Dict], client: Groq, test: bool = False, timeout: int = 20) -> List[Article]:
+    """Process articles from all feeds and generate questions and answers.
+    
+    Args:
+        feeds: List of feed dictionaries containing URLs
+        client: Groq client instance
+        test: Whether to run in test mode (limited articles)
+        timeout: Timeout in seconds for processing each article
+    """
     articles = []
     max_articles = 5 if test else None
     
     with Progress() as progress:
-        task = progress.add_task("[cyan]Processing articles...", total=len(feeds))
+        feed_task = progress.add_task("[cyan]Processing feeds...", total=len(feeds))
         
         for feed_info in feeds:
             feed = fetch_feed(feed_info['url'])
             if not feed.entries:
+                progress.update(feed_task, advance=1)
                 continue
                 
+            # Calculate total articles to process for this feed
+            total_articles = min(len(feed.entries), max_articles) if max_articles else len(feed.entries)
+            article_task = progress.add_task(f"[cyan]Processing articles from {feed_info['url']}...", total=total_articles)
+            
             for i, entry in enumerate(feed.entries):
                 if max_articles and i >= max_articles:
                     break
+                    
                 title = entry.get('title', 'No title')
                 link = entry.get('link', 'No link')
                 date = format_date(entry.get('published', 'No date'))
                 
-                # Extract article content
-                content = extract_article_content(link)
-                if not content:
-                    continue
+                try:
+                    # Extract article content with timeout
+                    content = extract_article_content(link, timeout=timeout)
+                    if not content:
+                        progress.update(article_task, advance=1)
+                        continue
+                    
+                    # Generate Q&A with timeout
+                    qa_pair = generate_question_and_answer(title, content, client)
+                    if qa_pair:
+                        articles.append(Article(
+                            title=title,
+                            link=link,
+                            date=date,
+                            content=content,
+                            question=qa_pair['question'],
+                            answer=qa_pair['answer'],
+                            answer_context=qa_pair['answer_context']
+                        ))
+                except TimeoutError:
+                    console.print(f"[yellow]Timeout processing article: {title}[/yellow]")
+                except Exception as e:
+                    console.print(f"[red]Error processing article {title}: {str(e)}[/red]")
                 
-                qa_pair = generate_question_and_answer(title, content, client)
-                if qa_pair:
-                    articles.append(Article(
-                        title=title,
-                        link=link,
-                        date=date,
-                        content=content,
-                        question=qa_pair['question'],
-                        answer=qa_pair['answer'],
-                        answer_context=qa_pair['answer_context']
-                    ))
+                progress.update(article_task, advance=1)
             
-            progress.update(task, advance=1)
+            progress.remove_task(article_task)
+            progress.update(feed_task, advance=1)
     
     # Evaluate and filter articles
     indices_to_keep = evaluate_questions(articles, client)
