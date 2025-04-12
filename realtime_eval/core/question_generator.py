@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from rich.console import Console
 from rich.progress import Progress
 from groq import Groq
-from .feed_handler import fetch_feed, format_date, load_feeds
+from .feed_handler import fetch_feed, format_date, load_feeds, is_within_24_hours
 from .content_extractor import extract_article_content
 
 console = Console()
@@ -19,39 +19,50 @@ class Article:
     answer: Optional[str] = None
     answer_context: Optional[str] = None
 
-def generate_question_and_answer(title: str, content: str, client: Groq) -> Optional[Dict[str, str]]:
-    """Generate a question and answer based on the article content using Groq API."""
+def generate_questions_and_answers(title: str, content: str, client: Groq) -> Optional[List[Dict[str, str]]]:
+    """Generate up to 3 questions and answers based on the article content using Groq API."""
     try:
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="meta-llama/llama-4-maverick-17b-128e-instruct",
             messages=[
                 {
                     "role": "system",
                     "content": (
                         "You are a helpful assistant that generates questions and answers in JSON format to test an LLM's ability to access real-time information from news articles. "
                         "Use the following guidelines:\n\n"
-                        "1. Analyze the article content and generate a specific question that can be answered using a direct quote or specific information from the article. "
-                        "The question should be clear, specific, and test the ability to find information within the text.\n\n"
-                        "2. The answer should be a direct quote or specific information from the article that answers the question. "
+                        "1. Analyze the article content and generate up to 3 specific questions that can be answered using direct quotes or specific information from the article. "
+                        "* Each question should be about something that has happened or been learned only in the past 24 hours."
+                        "* Each question should ask a question that can be researched rather than referencing the specific article, as the answerer will be searching for the answer online instead of having the specific article to reference."
+                        "* Each question should be clear, specific, and test the ability to find information within the text.\n\n"
+                        "2. Each answer should be a direct quote or specific information from the article that answers the question. "
                         "Include the exact text from the article that contains the answer.\n\n"
-                        "3. Your response must be in a JSON schema with three keys: 'question', 'answer', and 'answer_context'. "
+                        "3. Your response must be in a JSON schema with an array of objects, each containing: 'question', 'answer', and 'answer_context'. "
                         "'answer_context' should contain the exact text from the article that contains the answer.\n\n"
-                        "4. If the article doesn't contain enough specific information to generate a good question-answer pair, output 'SKIP' for all values.\n\n"
+                        "4. If the article doesn't contain enough specific information to generate good question-answer pairs, output 'SKIP' for all values.\n\n"
                         "Example response:\n"
                         "{\n"
-                        "  \"question\": \"What specific action did the Federal Reserve announce regarding interest rates?\",\n"
-                        "  \"answer\": \"The Federal Reserve announced it would maintain the current interest rates.\",\n"
-                        "  \"answer_context\": \"In a statement released today, the Federal Reserve announced it would maintain the current interest rates, citing stable economic indicators.\"\n"
+                        "  \"qa_pairs\": [\n"
+                        "    {\n"
+                        "      \"question\": \"What specific action did the Federal Reserve announce regarding interest rates?\",\n"
+                        "      \"answer\": \"The Federal Reserve announced it would maintain the current interest rates.\",\n"
+                        "      \"answer_context\": \"In a statement released today, the Federal Reserve announced it would maintain the current interest rates, citing stable economic indicators.\"\n"
+                        "    },\n"
+                        "    {\n"
+                        "      \"question\": \"What was the reported inflation rate for October 2024 that influenced the Fed's decision to maintain interest rates?\",\n"
+                        "      \"answer\": \"The inflation rate was 3.2% in October 2024\",\n"
+                        "      \"answer_context\": \"The Federal Reserve's decision was influenced by the latest economic data showing inflation at 3.2% in October 2024, down from 3.7% in September 2024.\"\n"
+                        "    }\n"
+                        "  ]\n"
                         "}"
                     )
                 },
                 {
                     "role": "user",
-                    "content": f"Article title: {title}\n\nArticle content:\n{content}\n\nGenerate a question and answer based on this article:"
+                    "content": f"Article title: {title}\n\nArticle content:\n{content}\n\nGenerate up to 3 questions and answers based on this article:"
                 }
             ],
-            temperature=0.7,
-            max_tokens=1000,
+            temperature=0.2,
+            max_tokens=1500,
             response_format={"type": "json_object"},
         )
         content = response.choices[0].message.content
@@ -59,22 +70,26 @@ def generate_question_and_answer(title: str, content: str, client: Groq) -> Opti
             console.print(f"[red]Empty response for article: {title}[/red]")
             return None
         result = json.loads(content)
-        if result.get("question") == "SKIP" or result.get("answer") == "SKIP":
+        qa_pairs = result.get("qa_pairs", [])
+        if not qa_pairs or qa_pairs[0].get("question") == "SKIP":
             return None
-        return result
+        return qa_pairs
     except json.JSONDecodeError:
         console.print(f"[red]Invalid JSON response for article: {title}[/red]")
         return None
     except Exception as e:
-        console.print(f"[red]Error generating question and answer: {e}[/red]")
+        console.print(f"[red]Error generating questions and answers: {e}[/red]")
         return None
 
 def evaluate_questions(articles: List[Article], client: Groq) -> List[int]:
     """Evaluate questions and answers using an LLM to determine which to keep."""
     indices_to_keep = []
     offset = 0
+    console.print(f"[blue]Total number of articles: {len(articles)}[/blue]")  # Debug log
+    
     for i in range(0, len(articles), 5):
         batch = articles[i:i+5]
+        console.print(f"[blue]Processing batch starting at index {i}, batch size: {len(batch)}[/blue]")  # Debug log
         batch_content = [
             {
                 "question": article.question,
@@ -84,14 +99,14 @@ def evaluate_questions(articles: List[Article], client: Groq) -> List[int]:
         ]
         try:
             response = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+                model="meta-llama/llama-4-maverick-17b-128e-instruct",
                 messages=[
                     {
                         "role": "system",
                         "content": (
                             "You are a helpful assistant that evaluates questions and answers in JSON format to test an LLM's ability to access real-time information from news headlines. "
                             "Use the following guidelines:\n\n"
-                            "1. Analyze each question and answer pair to determine if it meets the criteria of being clear, specific, and based on a real-time event. The question should include a date or time-related detail from the article, or be specific enough to remain relevant beyond a few weeks. "
+                            "1. Analyze each question and answer pair to determine if it meets the criteria of being clear, specific, and based on a real-time event. The question should include a date or time-related detail from the article, or be specific enough to remain relevant beyond a few weeks. The question MUST be about something that has happened or been learned only in the past 24 hours."
                             "If the pair is strong, include its index in the response.\n\n"
                             "2. Return a JSON object with reasoning and indices fields."
                             "Example response: {\"reasoning\": \"Pair 0 is good because...\", \"indices\": [0, 1, 2]}"
@@ -106,7 +121,7 @@ def evaluate_questions(articles: List[Article], client: Groq) -> List[int]:
                         "content": f"Evaluate these question-answer pairs: {json.dumps(batch_content)}"
                     }
                 ],
-                temperature=0.7,
+                temperature=0.2,
                 max_tokens=1000,
                 response_format={"type": "json_object"}
             )
@@ -115,6 +130,7 @@ def evaluate_questions(articles: List[Article], client: Groq) -> List[int]:
             content = response.choices[0].message.content.strip()
             result = json.loads(content)
             new_indices_to_keep = result.get('indices', [])
+            console.print(f"[blue]Received indices from LLM: {new_indices_to_keep}, current offset: {offset}[/blue]")  # Debug log
             indices_to_keep.extend([i + offset for i in new_indices_to_keep])
             offset += 5
 
@@ -122,6 +138,8 @@ def evaluate_questions(articles: List[Article], client: Groq) -> List[int]:
         except Exception as e:
             console.print(f"[red]Error evaluating questions: {e}[/red]")
             return []
+    
+    console.print(f"[blue]Final indices to keep: {indices_to_keep}[/blue]")  # Debug log
     return indices_to_keep
 
 def process_articles(feeds: List[Dict], client: Groq, test: bool = False, timeout: int = 20) -> List[Article]:
@@ -144,7 +162,10 @@ def process_articles(feeds: List[Dict], client: Groq, test: bool = False, timeou
             if not feed.entries:
                 progress.update(feed_task, advance=1)
                 continue
-                
+            
+            # Filter out articles that are older than 24 hours
+            feed.entries = [entry for entry in feed.entries if is_within_24_hours(entry.get('published', 'No date'))]
+            
             # Calculate total articles to process for this feed
             total_articles = min(len(feed.entries), max_articles) if max_articles else len(feed.entries)
             article_task = progress.add_task(f"[cyan]Processing articles from {feed_info['url']}...", total=total_articles)
@@ -164,18 +185,19 @@ def process_articles(feeds: List[Dict], client: Groq, test: bool = False, timeou
                         progress.update(article_task, advance=1)
                         continue
                     
-                    # Generate Q&A with timeout
-                    qa_pair = generate_question_and_answer(title, content, client)
-                    if qa_pair:
-                        articles.append(Article(
-                            title=title,
-                            link=link,
-                            date=date,
-                            content=content,
-                            question=qa_pair['question'],
-                            answer=qa_pair['answer'],
-                            answer_context=qa_pair['answer_context']
-                        ))
+                    # Generate multiple Q&A pairs with timeout
+                    qa_pairs = generate_questions_and_answers(title, content, client)
+                    if qa_pairs:
+                        for qa_pair in qa_pairs:
+                            articles.append(Article(
+                                title=title,
+                                link=link,
+                                date=date,
+                                content=content,
+                                question=qa_pair['question'],
+                                answer=qa_pair['answer'],
+                                answer_context=qa_pair['answer_context']
+                            ))
                 except TimeoutError:
                     console.print(f"[yellow]Timeout processing article: {title}[/yellow]")
                 except Exception as e:
