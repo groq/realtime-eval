@@ -1,7 +1,7 @@
 import json
 import feedparser
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Dict
 from rich.console import Console
 from rich.table import Table
@@ -35,6 +35,15 @@ def format_date(date_str: str) -> str:
         return date.strftime("%Y-%m-%d %H:%M:%S")
     except (ValueError, TypeError):
         return date_str
+
+def is_within_24_hours(date_str: str) -> bool:
+    """Check if the date is within the last 24 hours."""
+    try:
+        date = datetime.strptime(date_str, "%a, %d %b %Y %H:%M:%S %z")
+        now = datetime.now(date.tzinfo)
+        return date > now - timedelta(days=1)
+    except (ValueError, TypeError):
+        return False
 
 def display_articles(feed: feedparser.FeedParserDict, feed_name: str):
     """Display articles from a feed in a rich table."""
