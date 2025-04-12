@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from rich.console import Console
 from rich.progress import Progress
 from groq import Groq
-from .feed_handler import fetch_feed, format_date, load_feeds, is_within_24_hours
+from .feed_handler import fetch_feed, format_date, load_feeds, is_within_7_days
 from .content_extractor import extract_article_content
 
 console = Console()
@@ -31,10 +31,10 @@ def generate_questions_and_answers(title: str, content: str, client: Groq) -> Op
                         "You are a helpful assistant that generates questions and answers in JSON format to test an LLM's ability to access real-time information from news articles. "
                         "Use the following guidelines:\n\n"
                         "1. Analyze the article content and generate up to 3 specific questions that can be answered using direct quotes or specific information from the article. "
-                        "* Each question should be about something that has happened or been learned only in the past 24 hours."
+                        "* Each question should be about something that has happened or been learned only in the past 7 days. It should be newsworthy and significant."
                         "* Each question should ask a question that can be researched rather than referencing the specific article, as the answerer will be searching for the answer online instead of having the specific article to reference."
                         "* Each question should be clear, specific, and test the ability to find information within the text.\n\n"
-                        "2. Each answer should be a direct quote or specific information from the article that answers the question. "
+                        "2. Each answer should be a direct quote or specific information from the article that answers the question. Create questions where the answer is clear and specific, rather than vague answers like \"good enough\" or \"get moving\"."
                         "Include the exact text from the article that contains the answer.\n\n"
                         "3. Your response must be in a JSON schema with an array of objects, each containing: 'question', 'answer', and 'answer_context'. "
                         "'answer_context' should contain the exact text from the article that contains the answer.\n\n"
@@ -52,6 +52,11 @@ def generate_questions_and_answers(title: str, content: str, client: Groq) -> Op
                         "      \"answer\": \"The inflation rate was 3.2% in October 2024\",\n"
                         "      \"answer_context\": \"The Federal Reserve's decision was influenced by the latest economic data showing inflation at 3.2% in October 2024, down from 3.7% in September 2024.\"\n"
                         "    }\n"
+                        "    {\n"
+                        "      \"question\": \"What did Jerome Powell say about the health of the economy in his speech at the National Press Club?\",\n"
+                        "      \"answer\": \"Jerome Powell said the economy is strong and growing.\",\n"
+                        "      \"answer_context\": \"Jerome Powell spoke at the National Press Club about the state of the economy. He said the economy is strong and growing, but the Fed is keeping interest rates low to support the economy.\"\n"
+                        "    }\n"
                         "  ]\n"
                         "}"
                     )
@@ -62,7 +67,7 @@ def generate_questions_and_answers(title: str, content: str, client: Groq) -> Op
                 }
             ],
             temperature=0.2,
-            max_tokens=1500,
+            max_tokens=2500,
             response_format={"type": "json_object"},
         )
         content = response.choices[0].message.content
@@ -80,67 +85,6 @@ def generate_questions_and_answers(title: str, content: str, client: Groq) -> Op
     except Exception as e:
         console.print(f"[red]Error generating questions and answers: {e}[/red]")
         return None
-
-def evaluate_questions(articles: List[Article], client: Groq) -> List[int]:
-    """Evaluate questions and answers using an LLM to determine which to keep."""
-    indices_to_keep = []
-    offset = 0
-    console.print(f"[blue]Total number of articles: {len(articles)}[/blue]")  # Debug log
-    
-    for i in range(0, len(articles), 5):
-        batch = articles[i:i+5]
-        console.print(f"[blue]Processing batch starting at index {i}, batch size: {len(batch)}[/blue]")  # Debug log
-        batch_content = [
-            {
-                "question": article.question,
-                "answer": article.answer
-            }
-            for article in batch
-        ]
-        try:
-            response = client.chat.completions.create(
-                model="meta-llama/llama-4-maverick-17b-128e-instruct",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "You are a helpful assistant that evaluates questions and answers in JSON format to test an LLM's ability to access real-time information from news headlines. "
-                            "Use the following guidelines:\n\n"
-                            "1. Analyze each question and answer pair to determine if it meets the criteria of being clear, specific, and based on a real-time event. The question should include a date or time-related detail from the article, or be specific enough to remain relevant beyond a few weeks. The question MUST be about something that has happened or been learned only in the past 24 hours."
-                            "If the pair is strong, include its index in the response.\n\n"
-                            "2. Return a JSON object with reasoning and indices fields."
-                            "Example response: {\"reasoning\": \"Pair 0 is good because...\", \"indices\": [0, 1, 2]}"
-                            "Example pairs:\n"
-                            "[{\"question\": \"What was the outcome of SpaceX's launch yesterday?\", \"answer\": \"SpaceX successfully launched 22 Starlink satellites yesterday from Florida.\"},\n"
-                            " {\"question\": \"Who won the 2023 World Series?\", \"answer\": \"The Texas Rangers won the 2023 World Series.\"},\n"
-                            " {\"question\": \"What did the Fed announce about interest rates this week?\", \"answer\": \"The Federal Reserve announced it is maintaining current interest rates this week.\"}]"
-                        )
-                    },
-                    {
-                        "role": "user",
-                        "content": f"Evaluate these question-answer pairs: {json.dumps(batch_content)}"
-                    }
-                ],
-                temperature=0.2,
-                max_tokens=1000,
-                response_format={"type": "json_object"}
-            )
-
-            print(response.choices[0].message.content)
-            content = response.choices[0].message.content.strip()
-            result = json.loads(content)
-            new_indices_to_keep = result.get('indices', [])
-            console.print(f"[blue]Received indices from LLM: {new_indices_to_keep}, current offset: {offset}[/blue]")  # Debug log
-            indices_to_keep.extend([i + offset for i in new_indices_to_keep])
-            offset += 5
-
-            console.print(f"[green]Running indices to keep: {indices_to_keep}[/green]")
-        except Exception as e:
-            console.print(f"[red]Error evaluating questions: {e}[/red]")
-            return []
-    
-    console.print(f"[blue]Final indices to keep: {indices_to_keep}[/blue]")  # Debug log
-    return indices_to_keep
 
 def process_articles(feeds: List[Dict], client: Groq, test: bool = False, timeout: int = 20) -> List[Article]:
     """Process articles from all feeds and generate questions and answers.
@@ -160,12 +104,19 @@ def process_articles(feeds: List[Dict], client: Groq, test: bool = False, timeou
         for feed_info in feeds:
             feed = fetch_feed(feed_info['url'])
             if not feed.entries:
+                console.print(f"[red]No articles found for feed: {feed_info['url']}[/red]")
                 progress.update(feed_task, advance=1)
                 continue
             
-            # Filter out articles that are older than 24 hours
-            feed.entries = [entry for entry in feed.entries if is_within_24_hours(entry.get('published', 'No date'))]
+            # print how many articles are in the feed
+            console.print(f"[blue]Articles in feed: {len(feed.entries)}[/blue]")
             
+            # Filter out articles that are older than 7 days
+            feed.entries = [entry for entry in feed.entries if is_within_7_days(entry.get('published', 'No date'))]
+            
+            # print how many articles are left
+            console.print(f"[blue]Articles left: {len(feed.entries)}[/blue]")
+
             # Calculate total articles to process for this feed
             total_articles = min(len(feed.entries), max_articles) if max_articles else len(feed.entries)
             article_task = progress.add_task(f"[cyan]Processing articles from {feed_info['url']}...", total=total_articles)
@@ -208,9 +159,7 @@ def process_articles(feeds: List[Dict], client: Groq, test: bool = False, timeou
             progress.remove_task(article_task)
             progress.update(feed_task, advance=1)
     
-    # Evaluate and filter articles
-    indices_to_keep = evaluate_questions(articles, client)
-    return [articles[i] for i in indices_to_keep]
+    return articles
 
 def save_dataset(articles: List[Article], filename: str = "news_questions.json"):
     """Save the generated questions and answers to a JSON file."""

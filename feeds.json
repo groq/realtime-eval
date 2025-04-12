@@ -1,24 +1,24 @@
 {
     "feeds": [
         {
-            "name": "CBS News",
-            "url": "https://www.cbsnews.com/latest/rss/main"
-        },
-        {
-            "name": "CNN Top Stories",
-            "url": "http://rss.cnn.com/rss/cnn_topstories.rss"
-        },
-        {
-            "name": "USA Today Top Stories",
-            "url": "http://rssfeeds.usatoday.com/usatoday-NewsTopStories"
-        },
-        {
             "name": "NPR News",
             "url": "http://www.npr.org/rss/rss.php?id=1001"
         },
         {
+            "name": "ABC News",
+            "url": "https://abcnews.go.com/abcnews/usheadlines"
+        },
+        {
             "name": "BBC Americas",
             "url": "http://newsrss.bbc.co.uk/rss/newsonline_world_edition/americas/rss.xml"
+        },
+        {
+            "name": "The Guardian",
+            "url": "https://www.theguardian.com/world/rss"
+        },
+        {
+            "name": "CBS News",
+            "url": "https://www.cbsnews.com/latest/rss/main"
         }
     ]
 }
