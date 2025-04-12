@@ -9,6 +9,11 @@ from rich.panel import Panel
 
 console = Console()
 
+date_formats = [
+    "%a, %d %b %Y %H:%M:%S %z",
+    "%a, %d %b %Y %H:%M:%S GMT"
+]
+
 def load_feeds() -> List[Dict]:
     """Load RSS feed URLs from the JSON file."""
     try:
@@ -21,30 +26,47 @@ def load_feeds() -> List[Dict]:
 def fetch_feed(feed_url: str) -> feedparser.FeedParserDict:
     """Fetch and parse an RSS feed."""
     try:
-        response = requests.get(feed_url)
+        response = requests.get(feed_url, timeout=10)
         response.raise_for_status()
         return feedparser.parse(response.content)
-    except requests.RequestException as e:
+    except (requests.RequestException, requests.Timeout) as e:
         console.print(f"[red]Error fetching feed {feed_url}: {e}[/red]")
         return feedparser.FeedParserDict()
 
 def format_date(date_str: str) -> str:
-    """Format the date string to a more readable format."""
-    try:
-        date = datetime.strptime(date_str, "%a, %d %b %Y %H:%M:%S %z")
-        return date.strftime("%Y-%m-%d %H:%M:%S")
-    except (ValueError, TypeError):
-        return date_str
+    """Format the date string to a more readable format."""    
+    for date_format in date_formats:
+        try:
+            date = datetime.strptime(date_str, date_format)
+            return date.strftime("%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            continue
+    raise ValueError(f"No valid date format found for {date_str}")
 
 def is_within_24_hours(date_str: str) -> bool:
     """Check if the date is within the last 24 hours."""
-    try:
-        date = datetime.strptime(date_str, "%a, %d %b %Y %H:%M:%S %z")
-        now = datetime.now(date.tzinfo)
-        return date > now - timedelta(days=1)
-    except (ValueError, TypeError):
-        return False
 
+    for date_format in date_formats:
+        try:
+            date = datetime.strptime(date_str, date_format)
+            now = datetime.now(date.tzinfo) if date.tzinfo else datetime.utcnow()
+            return date > now - timedelta(days=1)
+        except ValueError:
+            continue
+    return False
+
+def is_within_7_days(date_str: str) -> bool:
+    """Check if the date is within the last 7 days."""
+
+    for date_format in date_formats:
+        try:
+            date = datetime.strptime(date_str, date_format)
+            now = datetime.now(date.tzinfo) if date.tzinfo else datetime.utcnow()
+            return date > now - timedelta(days=7)
+        except ValueError:
+            continue
+    return False
+    
 def display_articles(feed: feedparser.FeedParserDict, feed_name: str):
     """Display articles from a feed in a rich table."""
     if not feed.entries:

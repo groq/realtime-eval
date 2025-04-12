@@ -23,4 +23,4 @@ def main(test: bool = False):
     save_dataset(articles)
 
 if __name__ == "__main__":
-    main(test=True)  # Set test=True to process only the first 5 articles 
+    main(test=False)
